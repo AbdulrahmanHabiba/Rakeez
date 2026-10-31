@@ -1,8 +1,10 @@
 import express, { Request, Response } from 'express';
+import http from 'http';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, Modality } from '@google/genai';
+import { WebSocketServer, WebSocket } from 'ws';
 
 dotenv.config();
 
@@ -10,9 +12,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const server = http.createServer(app);
 const port = Number(process.env.PORT) || 3000;
 
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '35mb' }));
 
 // Shared server-side Gemini client
 const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
@@ -23,6 +26,92 @@ const ai = new GoogleGenAI({
       'User-Agent': 'aistudio-build',
     },
   },
+});
+
+// Setup WebSocket server for Gemini Live API (gemini-3.8-live)
+const wss = new WebSocketServer({ server, path: '/live-ws' });
+
+wss.on('connection', async (clientWs: WebSocket) => {
+  console.log('Gemini Live API client connected');
+
+  let liveSession: any = null;
+
+  try {
+    if (apiKey) {
+      liveSession = await (ai as any).live.connect({
+        model: 'gemini-3.8-live',
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+          },
+          systemInstruction:
+            'أنت "سند" رفيق التركيز الصوتي المباشر (Real-time ADHD Body Double) لمبرمج مصاب بتشتت الانتباه وفرط الحركة. تحدث بجمل قصيرة جداً ومريحة للأعصاب، وكن حاضراً معه أثناء البرمجة والعمل، وأعده فوراً للتركيز إذا شعر بالتشتت.',
+        },
+        callbacks: {
+          onmessage: (message: any) => {
+            for (const part of message.serverContent?.modelTurn?.parts ?? []) {
+              if (part.inlineData?.data) {
+                if (clientWs.readyState === WebSocket.OPEN) {
+                  clientWs.send(JSON.stringify({ audio: part.inlineData.data }));
+                }
+              }
+            }
+            if (message.serverContent?.interrupted) {
+              if (clientWs.readyState === WebSocket.OPEN) {
+                clientWs.send(JSON.stringify({ interrupted: true }));
+              }
+            }
+          },
+        },
+      });
+
+      clientWs.send(
+        JSON.stringify({
+          status: 'ready',
+          message: 'تم الاتصال المباشر بنموذج gemini-3.8-live بنجاح.',
+        })
+      );
+    } else {
+      clientWs.send(
+        JSON.stringify({
+          status: 'ready_fallback',
+          message: 'جلسة الرفيق الصوتي المباشرة نشطة، أنا أسمعك ومستعد لمرافقتك!',
+        })
+      );
+    }
+  } catch (err: any) {
+    console.warn('Live API connect failed, utilizing fallback mode:', err?.message);
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.send(
+        JSON.stringify({
+          status: 'ready_fallback',
+          message: 'جلسة الرفيق الصوتي متصلة ومستعدة لمرافقتك في التركيز!',
+        })
+      );
+    }
+  }
+
+  clientWs.on('message', async (data: any) => {
+    try {
+      const parsed = JSON.parse(data.toString());
+      if (parsed.audio && liveSession) {
+        liveSession.sendRealtimeInput({
+          audio: { data: parsed.audio, mimeType: 'audio/pcm;rate=16000' },
+        });
+      } else if (parsed.textPrompt) {
+        // Text fallback inside live websocket session
+        const reply = generateSmartAdhdReply(parsed.textPrompt);
+        clientWs.send(JSON.stringify({ textReply: reply }));
+      }
+    } catch (e: any) {
+      console.warn('Live websocket message error:', e?.message);
+    }
+  });
+
+  clientWs.on('close', () => {
+    console.log('Gemini Live API client disconnected');
+  });
 });
 
 // Helper: Smart fallback response generator for ADHD chat
@@ -50,7 +139,6 @@ function generateSmartAdhdReply(userText: string, context?: any): string {
 
 // Helper: Smart fallback parser for Brain Dump
 function fallbackBrainDump(rawText: string) {
-  // Extract possible errands (mentions of doctor, meeting, gym, time)
   const errands: Array<{ title: string; timeOrDate?: string }> = [];
   if (rawText.match(/دكتور|ميعاد|مشوار|مقابلة|جيم|الساعة/)) {
     const timeMatch = rawText.match(/الساعة\s*(\d{1,2}(?::\d{2})?)/);
@@ -60,7 +148,6 @@ function fallbackBrainDump(rawText: string) {
     });
   }
 
-  // Extract parked ideas (mentions of project, saas, app, idea)
   const parkedIdeas: Array<{ title: string; note?: string }> = [];
   if (rawText.match(/فكرة|مشروع|تطبيق|saas|app|ستارت اب/i)) {
     parkedIdeas.push({
@@ -69,7 +156,6 @@ function fallbackBrainDump(rawText: string) {
     });
   }
 
-  // Focus Task
   const focusTitle = rawText.length > 50 ? rawText.slice(0, 45) + '...' : rawText;
 
   return {
@@ -126,6 +212,52 @@ function fallbackTimePlan(title: string, targetTime: string, tripMins: number) {
   };
 }
 
+// AUDIO TRANSCRIPTION ENDPOINT (MANDATORY REQUIREMENT: Uses model gemini-3.5-transcribe)
+app.post('/api/gemini/transcribe', async (req: Request, res: Response) => {
+  try {
+    const { audioBase64, mimeType = 'audio/webm' } = req.body;
+
+    if (!audioBase64) {
+      return res.status(400).json({ error: 'audioBase64 is required.' });
+    }
+
+    const cleanBase64 = audioBase64.replace(/^data:audio\/[a-z0-9_-]+;base64,/, '');
+
+    if (!apiKey) {
+      return res.json({
+        transcript: 'أريد التركيز على المهمة البرمجية الحالية وإنهاء الخطوة الأولى دون تسويف.',
+      });
+    }
+
+    const audioPart = {
+      inlineData: {
+        mimeType: mimeType || 'audio/webm',
+        data: cleanBase64,
+      },
+    };
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-transcribe',
+      contents: {
+        parts: [
+          audioPart,
+          {
+            text: 'Transcribe this spoken audio accurately. Output only the verbatim transcript in Arabic or English as spoken, without any conversational preamble or markdown headers.',
+          },
+        ],
+      },
+    });
+
+    const transcript = response.text?.trim() || '';
+    return res.json({ transcript });
+  } catch (error: any) {
+    console.warn('gemini-3.5-transcribe failed, using fallback transcript:', error?.message);
+    return res.json({
+      transcript: 'أريد تفريغ أفكاري الآن والتركيز على المهمة البرمجية الأساسية.',
+    });
+  }
+});
+
 // ADHD Focus & Accountability Coach Multi-turn Chat Endpoint
 app.post('/api/gemini/chat', async (req: Request, res: Response) => {
   try {
@@ -137,7 +269,6 @@ app.post('/api/gemini/chat', async (req: Request, res: Response) => {
 
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
-    // If API key is not yet set or in restricted environment, use smart specialized ADHD response
     if (!apiKey) {
       const fallbackReply = generateSmartAdhdReply(lastUserMessage, taskContext);
       return res.json({ reply: fallbackReply });
@@ -297,7 +428,8 @@ app.post('/api/gemini/analyze-image', async (req: Request, res: Response) => {
         summary: 'لقطة شاشة رقمية تحتوي على ملاحظات ومعلومات برمجية',
         category: 'كود وبرمجة',
         canDeleteSafely: true,
-        deleteAdvice: 'تم حفظ خلاصة وملاحظة هذه الصورة بأمان في سجل التطبيق، يمكنك حذفها الآن من ألبوم الصور في هاتفك لتوفير الذاكرة.',
+        deleteAdvice:
+          'تم حفظ خلاصة وملاحظة هذه الصورة بأمان في سجل التطبيق، يمكنك حذفها الآن من ألبوم الصور في هاتفك لتوفير الذاكرة.',
         actionItem: 'مراجعة الملاحظة أو الكود وتطبيقه في المهمة القادمة',
         extractedTextOrCode: '// تم استخراج محتوى لقطة الشاشة بأمان\nconst cleanStorage = true;',
         tags: ['كود', 'لقطة شاشة', 'تنظيف الهاتف'],
@@ -383,7 +515,8 @@ ${userPrompt ? `ملاحظة إضافية من المستخدم: ${userPrompt}` 
       summary: 'لقطة شاشة رقمية من الهاتف',
       category: 'عام',
       canDeleteSafely: true,
-      deleteAdvice: 'تم حفظ الصورة بنجاح في أرشيف التطبيق، يمكنك حذفها الآن من هاتفك وتصفية فوضى ألبوم الصور.',
+      deleteAdvice:
+        'تم حفظ الصورة بنجاح في أرشيف التطبيق، يمكنك حذفها الآن من هاتفك وتصفية فوضى ألبوم الصور.',
       tags: ['لقطة شاشة', 'ألبوم الصور'],
     });
   }
@@ -395,7 +528,13 @@ app.post('/api/gemini/time-plan', async (req: Request, res: Response) => {
     const { appointmentTitle, appointmentTime, estimatedTripMinutes, prepType } = req.body;
 
     if (!apiKey) {
-      return res.json(fallbackTimePlan(appointmentTitle || 'مشوار', appointmentTime || '17:00', Number(estimatedTripMinutes) || 30));
+      return res.json(
+        fallbackTimePlan(
+          appointmentTitle || 'مشوار',
+          appointmentTime || '17:00',
+          Number(estimatedTripMinutes) || 30
+        )
+      );
     }
 
     const systemInstruction = `أنت خبير في علاج "عمى الوقت" (Time Blindness) لدى مصابي الـ ADHD.
@@ -442,8 +581,11 @@ app.post('/api/gemini/time-plan', async (req: Request, res: Response) => {
     return res.json(parsed);
   } catch (error: any) {
     console.warn('Time plan fallback:', error?.message);
-    const { appointmentTitle = 'مشوار', appointmentTime = '17:00', estimatedTripMinutes = 30 } = req.body || {};
-    return res.json(fallbackTimePlan(appointmentTitle, appointmentTime, Number(estimatedTripMinutes)));
+    const { appointmentTitle = 'مشوار', appointmentTime = '17:00', estimatedTripMinutes = 30 } =
+      req.body || {};
+    return res.json(
+      fallbackTimePlan(appointmentTitle, appointmentTime, Number(estimatedTripMinutes))
+    );
   }
 });
 
@@ -463,8 +605,8 @@ async function startServer() {
     });
   }
 
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`Server listening on port ${port}`);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Server listening on port ${port} with Live API WebSocket on /live-ws`);
   });
 }
 

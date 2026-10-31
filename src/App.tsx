@@ -11,9 +11,8 @@ import {
   FileImage,
   MessageSquare,
   Lightbulb,
-  CheckCircle2,
-  Sparkles,
-  Layers,
+  Radio,
+  Gamepad2,
   ArrowRight,
 } from 'lucide-react';
 import { FocusTask, ParkedIdea, Errand, DeclutterItem, TimePlan, ChatMessage } from './types';
@@ -23,16 +22,21 @@ import { FocusMonotasker } from './components/FocusMonotasker';
 import { TimeBlindnessCalc } from './components/TimeBlindnessCalc';
 import { ScreenshotDeclutter } from './components/ScreenshotDeclutter';
 import { GeminiCoachChat } from './components/GeminiCoachChat';
+import { GeminiLiveVoice } from './components/GeminiLiveVoice';
+import { TabBuster3DGame } from './components/game/TabBuster3DGame';
 import { ParkedIdeasVault } from './components/ParkedIdeasVault';
 import { DeveloperPortModal } from './components/DeveloperPortModal';
 import { playChime } from './utils/sound';
 
 export default function App() {
-  // Local storage keys
   const STORAGE_KEY = 'rakeez_adhd_data_v1';
 
-  // State
-  const [activeTab, setActiveTab] = useState<'braindump' | 'focus' | 'time' | 'declutter' | 'chat' | 'ideas'>('braindump');
+  // Tabs
+  const [activeTab, setActiveTab] = useState<
+    'braindump' | 'focus' | 'time' | 'declutter' | 'chat' | 'ideas' | 'live'
+  >('braindump');
+  const [isGameActive, setIsGameActive] = useState(false);
+
   const [activeTask, setActiveTask] = useState<FocusTask | null>(null);
   const [parkedIdeas, setParkedIdeas] = useState<ParkedIdea[]>([]);
   const [errands, setErrands] = useState<Errand[]>([]);
@@ -48,7 +52,7 @@ export default function App() {
   const [prefilledTripTitle, setPrefilledTripTitle] = useState('');
   const [prefilledTripTime, setPrefilledTripTime] = useState('');
 
-  // Load from local storage on mount
+  // Load from local storage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -68,7 +72,7 @@ export default function App() {
     }
   }, []);
 
-  // Save to local storage on change
+  // Save to local storage
   useEffect(() => {
     try {
       const stateToSave = {
@@ -87,7 +91,7 @@ export default function App() {
     }
   }, [activeTask, parkedIdeas, errands, declutterItems, timePlans, chatMessages, completedStepsToday, darkMode]);
 
-  // Sync dark mode class on HTML document
+  // Sync dark mode
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -96,7 +100,6 @@ export default function App() {
     }
   }, [darkMode]);
 
-  // Handlers
   const handleStartFocusTask = (task: FocusTask) => {
     setActiveTask(task);
     setActiveTab('focus');
@@ -106,8 +109,7 @@ export default function App() {
     setActiveTask(updatedTask);
   };
 
-  const handleCompleteTask = (taskId: string) => {
-    // Keep in state but mark done
+  const handleCompleteTask = (_taskId: string) => {
     setCompletedStepsToday((prev) => prev + 1);
   };
 
@@ -169,7 +171,6 @@ export default function App() {
     setDeclutterItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // Chat Handler
   const handleSendMessage = async (userMessage: string, modelName: string) => {
     const userMsg: ChatMessage = {
       id: Math.random().toString(36).substring(2, 9),
@@ -227,9 +228,17 @@ export default function App() {
     }
   };
 
-  const handleClearChat = () => {
-    setChatMessages([]);
-  };
+  // IF GAME ACTIVE: Render full-viewport Game Shell without headers or footers!
+  if (isGameActive) {
+    return (
+      <TabBuster3DGame
+        onExitGame={() => setIsGameActive(false)}
+        onDopamineEarned={(amount) => {
+          setCompletedStepsToday((prev) => prev + amount);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-amber-200 dark:selection:bg-amber-900">
@@ -237,6 +246,8 @@ export default function App() {
       <Header
         completedMicroStepsCount={completedStepsToday}
         onOpenDevGuide={() => setIsDevGuideOpen(true)}
+        onLaunchGame={() => setIsGameActive(true)}
+        onLaunchLiveVoice={() => setActiveTab('live')}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
       />
@@ -314,6 +325,26 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab('live')}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeTab === 'live'
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'text-stone-600 dark:text-stone-400 hover:bg-stone-200/60 dark:hover:bg-stone-800'
+            }`}
+          >
+            <Radio className="w-4 h-4 text-amber-500" />
+            <span>صوت حي (Live API)</span>
+          </button>
+
+          <button
+            onClick={() => setIsGameActive(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-purple-200/50 dark:border-purple-800/40"
+          >
+            <Gamepad2 className="w-4 h-4" />
+            <span>كاسر التشتت 3D</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('ideas')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
               activeTab === 'ideas'
@@ -365,7 +396,7 @@ export default function App() {
                 </p>
                 <button
                   onClick={() => setActiveTab('braindump')}
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs inline-flex items-center gap-2 shadow-xs"
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs inline-flex items-center gap-2 shadow-xs cursor-pointer"
                 >
                   <span>تفريغ الأفكار الآن</span>
                   <ArrowRight className="w-4 h-4 rtl:rotate-180" />
@@ -398,9 +429,16 @@ export default function App() {
           <GeminiCoachChat
             messages={chatMessages}
             onSendMessage={handleSendMessage}
-            onClearChat={handleClearChat}
+            onClearChat={() => setChatMessages([])}
             activeTask={activeTask}
             isLoading={chatLoading}
+          />
+        )}
+
+        {activeTab === 'live' && (
+          <GeminiLiveVoice
+            onClose={() => setActiveTab('braindump')}
+            activeTaskTitle={activeTask?.title}
           />
         )}
 

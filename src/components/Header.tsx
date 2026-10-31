@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Sparkles, Brain, Code2, Moon, Sun, ShieldCheck } from 'lucide-react';
+import {
+  Volume2,
+  VolumeX,
+  Sparkles,
+  Brain,
+  Code2,
+  Moon,
+  Sun,
+  ShieldCheck,
+  Gamepad2,
+  Radio,
+} from 'lucide-react';
 import { playAmbientSound, stopAmbientSound } from '../utils/sound';
 
 interface HeaderProps {
   completedMicroStepsCount: number;
   onOpenDevGuide: () => void;
+  onLaunchGame: () => void;
+  onLaunchLiveVoice: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
 }
@@ -12,6 +25,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   completedMicroStepsCount,
   onOpenDevGuide,
+  onLaunchGame,
+  onLaunchLiveVoice,
   darkMode,
   onToggleDarkMode,
 }) => {
@@ -51,14 +66,34 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Ambient Noise + Dopamine Counter + Dev Guide + Theme Toggle */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Ambient Noise + Dopamine Counter + Live Audio + 3D Game + Dev Guide + Theme Toggle */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Dopamine micro-reward counter */}
           <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-stone-800/80 border border-amber-200/70 dark:border-stone-700 text-stone-700 dark:text-stone-300 px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs">
             <Sparkles className="w-4 h-4 text-amber-500" />
-            <span className="hidden md:inline">إنجازات اليوم:</span>
+            <span className="hidden lg:inline">إنجازات اليوم:</span>
             <span className="text-amber-600 dark:text-amber-400 font-bold px-1">{completedMicroStepsCount}</span>
           </div>
+
+          {/* Live Voice Button (gemini-3.8-live) */}
+          <button
+            onClick={onLaunchLiveVoice}
+            className="flex items-center gap-1.5 text-xs bg-amber-100/70 dark:bg-amber-950/70 hover:bg-amber-200 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-200 px-2.5 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 font-bold transition-all shadow-xs"
+            title="محادثة صوتية حية في الوقت الفعلي بنموذج gemini-3.8-live"
+          >
+            <Radio className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span className="hidden md:inline">صوت حي</span>
+          </button>
+
+          {/* 3D Tab Buster Game Launcher */}
+          <button
+            onClick={onLaunchGame}
+            className="flex items-center gap-1.5 text-xs bg-purple-100/70 dark:bg-purple-950/70 hover:bg-purple-200 dark:hover:bg-purple-900 text-purple-900 dark:text-purple-200 px-2.5 py-1.5 rounded-lg border border-purple-300 dark:border-purple-700 font-bold transition-all shadow-xs"
+            title="لعبة كاسر التشتت ثلاثية الأبعاد (Three.js)"
+          >
+            <Gamepad2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+            <span className="hidden md:inline">لعبة 3D</span>
+          </button>
 
           {/* ADHD Ambient sound generator (Brown noise / Binaural 40Hz / Rain) */}
           <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-200 dark:border-stone-700 text-xs">
@@ -72,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Volume2 className="w-3 h-3" />
-              <span className="hidden lg:inline">عزل ذهني</span>
+              <span className="hidden xl:inline">عزل ذهني</span>
             </button>
             <button
               onClick={() => handleSoundChange('binaural40')}
@@ -83,8 +118,8 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
               }`}
             >
-              <span className="hidden lg:inline">تردد 40Hz</span>
-              <span className="lg:hidden">40Hz</span>
+              <span className="hidden xl:inline">40Hz</span>
+              <span className="xl:hidden">40Hz</span>
             </button>
             {ambientType !== 'off' && (
               <button
@@ -103,11 +138,11 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Dev advice modal button */}
           <button
             onClick={onOpenDevGuide}
-            className="flex items-center gap-1.5 text-xs bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 font-medium transition-colors"
+            className="flex items-center gap-1.5 text-xs bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 px-2 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 font-medium transition-colors"
             title="نصيحة المطور: تحويل هذا التطبيق إلى React Native"
           >
             <Code2 className="w-3.5 h-3.5 text-blue-500" />
-            <span className="hidden md:inline">React Native</span>
+            <span className="hidden xl:inline">React Native</span>
           </button>
 
           {/* Dark mode toggle */}

@@ -182,19 +182,48 @@ export const BrainDump: React.FC<BrainDumpProps> = ({
           />
 
           <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-            {/* Audio Recording Button */}
-            <button
-              type="button"
-              onClick={toggleRecording}
-              className={`flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl transition-all shadow-xs ${
-                isRecording
-                  ? 'bg-red-500 text-white animate-pulse'
-                  : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700'
-              }`}
-            >
-              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-amber-600" />}
-              <span>{isRecording ? 'جارِ الاستماع.. اضغط للإيقاف' : 'تحدث بالصوت بدلاً من الكتابة'}</span>
-            </button>
+            {/* Audio Recording Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleRecording}
+                className={`flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl transition-all shadow-xs ${
+                  isRecording
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700'
+                }`}
+              >
+                {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-amber-600" />}
+                <span>{isRecording ? 'استماع مباشر.. اضغط للإيقاف' : 'إملاء صوتي مباشر'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setSpeechError(null);
+                  setIsLoading(true);
+                  try {
+                    const { recordAndTranscribe } = await import('../utils/transcribe');
+                    const res = await recordAndTranscribe(10);
+                    if (res.transcript) {
+                      setRawText((prev) => (prev ? `${prev} ${res.transcript}` : res.transcript));
+                      playChime('step');
+                    } else if (res.error) {
+                      setSpeechError(res.error);
+                    }
+                  } catch (e: any) {
+                    setSpeechError(e.message || 'خطأ في التفريغ.');
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-xs transition-all"
+                title="تسجيل صوتي وتفريغه بنموذج gemini-3.5-transcribe المتخصص"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                <span>تفريغ بدقة AI (gemini-3.5-transcribe)</span>
+              </button>
+            </div>
 
             {/* Quick action buttons */}
             <div className="flex items-center gap-2">
