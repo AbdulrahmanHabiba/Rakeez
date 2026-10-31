@@ -1,0 +1,8 @@
+{
+  "name": "ركّز | Rakeez — رفيق الـ ADHD والتركيز",
+  "description": "تطبيق مينيماليست مصمم خصيصاً لعقول الـ ADHD: تفريغ الأفكار بالصوت والنص، وضع التركيز على مهمة واحدة، حاسبة عمى الوقت والمشاوير، وفرز لقطات الشاشة بالذكاء الاصطناعي.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
