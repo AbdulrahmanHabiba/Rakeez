@@ -1,7 +1,6 @@
-// Web Speech Recognition wrapper supporting Arabic and hands-free voice capture
-
+// Web Speech Recognition wrapper supporting Arabic and hands-free voice capture with anti-duplication
 export interface SpeechRecognitionResultHandler {
-  onResult: (transcript: string, isFinal: boolean) => void;
+  onResult: (finalText: string, interimText: string) => void;
   onError?: (error: string) => void;
   onEnd?: () => void;
 }
@@ -9,6 +8,24 @@ export interface SpeechRecognitionResultHandler {
 export function isSpeechRecognitionSupported(): boolean {
   if (typeof window === 'undefined') return false;
   return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+}
+
+// Cleans consecutive duplicated words (common bug in continuous speech recognition)
+export function cleanDuplicateWords(text: string): string {
+  if (!text) return '';
+  // Split words by whitespace
+  const words = text.trim().split(/\s+/);
+  const cleaned: string[] = [];
+  
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    // If consecutive identical word, skip it (up to 1 duplicate allowed if natural, but skip 2+ or 1 if exact match)
+    if (i > 0 && word.toLowerCase() === words[i - 1].toLowerCase()) {
+      continue;
+    }
+    cleaned.push(word);
+  }
+  return cleaned.join(' ');
 }
 
 export function startSpeechRecognition({
@@ -30,27 +47,32 @@ export function startSpeechRecognition({
   recognition.interimResults = true;
   recognition.lang = lang;
 
+  let accumulatedFinal = '';
+
   recognition.onresult = (event: any) => {
-    let finalTranscript = '';
     let interimTranscript = '';
+    let newlyFinalized = '';
 
     for (let i = event.resultIndex; i < event.results.length; ++i) {
+      const transcriptSegment = event.results[i][0]?.transcript || '';
       if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript;
+        newlyFinalized += (newlyFinalized ? ' ' : '') + transcriptSegment.trim();
       } else {
-        interimTranscript += event.results[i][0].transcript;
+        interimTranscript += (interimTranscript ? ' ' : '') + transcriptSegment.trim();
       }
     }
 
-    const currentText = (finalTranscript || interimTranscript).trim();
-    if (currentText) {
-      onResult(currentText, !!finalTranscript);
+    if (newlyFinalized) {
+      accumulatedFinal = (accumulatedFinal ? `${accumulatedFinal} ${newlyFinalized}` : newlyFinalized).trim();
+      accumulatedFinal = cleanDuplicateWords(accumulatedFinal);
     }
+
+    onResult(accumulatedFinal, interimTranscript.trim());
   };
 
   recognition.onerror = (event: any) => {
-    console.warn('Speech recognition error:', event.error);
-    if (event.error !== 'no-speech') {
+    console.warn('Speech recognition event error:', event.error);
+    if (event.error !== 'no-speech' && event.error !== 'aborted') {
       onError?.(event.error);
     }
   };

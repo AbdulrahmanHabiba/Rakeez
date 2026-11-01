@@ -1,1 +1,151 @@
 @import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --bg-main: #ffffff;
+    --bg-card: #ffffff;
+    --bg-subtle: #f7f8fa;
+    --text-primary: #171717;
+    --text-secondary: #525252;
+    --text-muted: #8e8e93;
+    --border-color: #e5e7eb;
+    --accent: #1e293b;
+    --accent-glow: rgba(30, 41, 59, 0.15);
+  }
+
+  /* 1. AMOLED PURE BLACK (Default Dark Theme) */
+  .dark, [data-theme="amoled"] {
+    --bg-main: #000000;
+    --bg-card: #0d0d0d;
+    --bg-subtle: #141414;
+    --text-primary: #f5f5f5;
+    --text-secondary: #a3a3a3;
+    --text-muted: #737373;
+    --border-color: #242424;
+    --accent: #f5f5f5;
+    --accent-glow: rgba(255, 255, 255, 0.1);
+  }
+
+  /* 2. CYBERPUNK NEON (Stimulating Dark Theme) */
+  [data-theme="neon"] {
+    --bg-main: #06070d;
+    --bg-card: #0c0f1c;
+    --bg-subtle: #14192d;
+    --text-primary: #f0fdfa;
+    --text-secondary: #67e8f9;
+    --text-muted: #22d3ee;
+    --border-color: #1e2d4d;
+    --accent: #00f5d4;
+    --accent-glow: rgba(0, 245, 212, 0.25);
+  }
+
+  /* 3. MIDNIGHT SYNTHWAVE (Creative Dark Theme) */
+  [data-theme="synth"] {
+    --bg-main: #090717;
+    --bg-card: #120e2a;
+    --bg-subtle: #1c153d;
+    --text-primary: #fdf4ff;
+    --text-secondary: #e879f9;
+    --text-muted: #c084fc;
+    --border-color: #3b2368;
+    --accent: #f43f5e;
+    --accent-glow: rgba(244, 63, 94, 0.25);
+  }
+
+  /* 4. CALM EMERALD / FOREST (De-stressing Dark Theme) */
+  [data-theme="forest"] {
+    --bg-main: #040e09;
+    --bg-card: #091a12;
+    --bg-subtle: #10291e;
+    --text-primary: #ecfdf5;
+    --text-secondary: #6ee7b7;
+    --text-muted: #34d399;
+    --border-color: #1a4230;
+    --accent: #10b981;
+    --accent-glow: rgba(16, 185, 129, 0.25);
+  }
+
+  /* 5. SOLAR CITRUS (Energizing Warm Light Theme) */
+  [data-theme="solar"] {
+    --bg-main: #fcf9f2;
+    --bg-card: #ffffff;
+    --bg-subtle: #f5ece0;
+    --text-primary: #292524;
+    --text-secondary: #78716c;
+    --text-muted: #a8a29e;
+    --border-color: #e5dac8;
+    --accent: #ea580c;
+    --accent-glow: rgba(234, 88, 12, 0.2);
+  }
+
+  /* 6. NORDIC SKY (Clean Calm Light Theme) */
+  [data-theme="nordic"] {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-subtle: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border-color: #cbd5e1;
+    --accent: #0284c7;
+    --accent-glow: rgba(2, 132, 199, 0.2);
+  }
+
+  body {
+    font-family: 'Tajawal', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-main) !important;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+}
+
+/* Force CSS variable propagation so themes genuinely change card surfaces */
+[data-theme] main,
+[data-theme] header,
+[data-theme] .bg-white,
+[data-theme] .dark\:bg-\[\#000000\],
+[data-theme] .dark\:bg-black {
+  background-color: var(--bg-main) !important;
+}
+
+[data-theme] .dark\:bg-\[\#121212\],
+[data-theme] .dark\:bg-\[\#101010\],
+[data-theme] .dark\:bg-\[\#141414\],
+[data-theme] .dark\:bg-\[\#0e0e0e\],
+[data-theme] .dark\:bg-stone-900,
+[data-theme] .dark\:bg-stone-950 {
+  background-color: var(--bg-card) !important;
+}
+
+[data-theme] .dark\:bg-\[\#0c0c0c\],
+[data-theme] .dark\:bg-\[\#1c1c1c\],
+[data-theme] .dark\:bg-\[\#202020\],
+[data-theme] .dark\:bg-stone-800 {
+  background-color: var(--bg-subtle) !important;
+}
+
+[data-theme] .dark\:border-\[\#262626\],
+[data-theme] .dark\:border-stone-800,
+[data-theme] .dark\:border-stone-700 {
+  border-color: var(--border-color) !important;
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ShieldAlert, Sparkles, Navigation, AlertTriangle, CheckCircle, Trash2, Bell } from 'lucide-react';
+import { Clock, ArrowRight, Sparkles, Trash2, Bell, AlertTriangle } from 'lucide-react';
 import { TimePlan } from '../types';
 import { playChime } from '../utils/sound';
 
@@ -9,6 +9,7 @@ interface TimeBlindnessCalcProps {
   onDeleteTimePlan: (id: string) => void;
   initialAppointmentTitle?: string;
   initialAppointmentTime?: string;
+  onBack?: () => void;
 }
 
 export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
@@ -17,21 +18,20 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
   onDeleteTimePlan,
   initialAppointmentTitle = '',
   initialAppointmentTime = '',
+  onBack,
 }) => {
   const [appointmentTitle, setAppointmentTitle] = useState(initialAppointmentTitle);
   const [appointmentTime, setAppointmentTime] = useState(initialAppointmentTime || '17:00');
   const [estimatedTripMinutes, setEstimatedTripMinutes] = useState(30);
-  const [prepType, setPrepType] = useState('عادي (لبس، تجهيز الأغراض، البحث عن المفاتيح)');
+  const [prepType, setPrepType] = useState('عادي (لبس، تجهيز الأغراض، المفاتيح)');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync if initial props change
   useEffect(() => {
     if (initialAppointmentTitle) {
       setAppointmentTitle(initialAppointmentTitle);
     }
     if (initialAppointmentTime) {
-      // Clean time if formatted like "5 مساء"
       const timeMatch = initialAppointmentTime.match(/(\d{1,2}):(\d{2})/);
       if (timeMatch) {
         setAppointmentTime(`${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`);
@@ -90,18 +90,16 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
     }
   };
 
-  // Live countdown component for a plan
   const renderPlanCountdown = (plan: TimePlan) => {
     const now = new Date();
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTotalMinutes = currentHours * 60 + currentMinutes;
 
-    // Parse startPrepTime e.g. "16:20" or "4:20 PM"
     const prepParts = plan.startPrepTime.match(/(\d{1,2}):(\d{2})/);
     if (!prepParts) {
       return (
-        <span className="text-xs bg-stone-100 dark:bg-stone-800 px-2.5 py-1 rounded-md text-stone-600">
+        <span className="text-xs bg-stone-100 dark:bg-[#1a1a1a] px-2.5 py-1 rounded-md text-stone-500">
           ابدأ الاستعداد: {plan.startPrepTime}
         </span>
       );
@@ -109,7 +107,6 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
 
     let prepHours = parseInt(prepParts[1], 10);
     const prepMins = parseInt(prepParts[2], 10);
-    // If format had PM or if time is less than current in 12hr representation
     if (plan.startPrepTime.toLowerCase().includes('pm') && prepHours < 12) {
       prepHours += 12;
     }
@@ -119,15 +116,15 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
 
     if (diffMinutes < -60) {
       return (
-        <span className="text-xs bg-stone-100 dark:bg-stone-800 text-stone-500 px-2 py-0.5 rounded-md">
-          مشوار منتهي أو موعد مضى
+        <span className="text-xs bg-stone-100 dark:bg-[#1a1a1a] text-stone-400 px-2 py-0.5 rounded-md font-mono">
+          موعد مضى
         </span>
       );
     }
 
     if (diffMinutes <= 0) {
       return (
-        <div className="flex items-center gap-1.5 bg-red-100 dark:bg-red-950/70 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-300 px-3 py-1 rounded-lg text-xs font-bold animate-pulse">
+        <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 text-red-500 px-3 py-1 rounded-lg text-xs font-bold animate-pulse">
           <AlertTriangle className="w-3.5 h-3.5" />
           <span>حان وقت الخروج الآن! اترك اللابتوب فوراً</span>
         </div>
@@ -136,36 +133,46 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
 
     if (diffMinutes <= 15) {
       return (
-        <div className="flex items-center gap-1.5 bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 px-3 py-1 rounded-lg text-xs font-bold">
-          <Bell className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
-          <span>متبقي {diffMinutes} دقيقة على بدء الاستعداد! احفظ عملك</span>
+        <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-500 px-3 py-1 rounded-lg text-xs font-bold">
+          <Bell className="w-3.5 h-3.5 animate-bounce" />
+          <span>متبقي {diffMinutes} دقيقة على بدء الاستعداد!</span>
         </div>
       );
     }
 
     return (
-      <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 px-3 py-1 rounded-lg text-xs font-semibold">
-        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+      <div className="flex items-center gap-1.5 bg-stone-100 dark:bg-[#1a1a1a] border border-stone-200 dark:border-[#262626] text-stone-700 dark:text-stone-300 px-3 py-1 rounded-lg text-xs font-mono">
+        <Clock className="w-3.5 h-3.5 text-stone-400" />
         <span>متبقي {diffMinutes} دقيقة قبل بدء الاستعداد</span>
       </div>
     );
   };
 
   return (
-    <div className="space-y-6">
-      {/* Intro banner */}
-      <div className="bg-stone-100/80 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-5 space-y-2">
-        <h2 className="text-base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-amber-500" />
-          <span>حاسبة "عمى الوقت" وجدول المشاوير الواقعي</span>
+    <div className="max-w-3xl mx-auto space-y-6 py-4 animate-in fade-in duration-300">
+      {/* Top back link if opened from tools */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors cursor-pointer"
+        >
+          <ArrowRight className="w-3.5 h-3.5 rtl:rotate-0" />
+          <span>العودة لجميع الأدوات</span>
+        </button>
+      )}
+
+      {/* Intro */}
+      <div className="space-y-1">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100 flex items-center gap-2">
+          <span>حاسبة عمى الوقت وجدول المشاوير</span>
         </h2>
-        <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-          عقل الـ ADHD يحسب فقط وقت الطريق على Google Maps (مثلاً 30 دقيقة)، وينسى وقت (ارتداء الملابس، تجميع المفاتيح والمحفظة، إغلاق اللابتوب، ركن السيارة، والمشي للمكان). هذه الحاسبة تضيف هوامش الأمان الذكية لكي تصل دائماً قبل موعدك دون توتر!
+        <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
+          عقل الـ ADHD يحسب وقت الطريق فقط وينسى وقت اللبس وجمع المفاتيح وإغلاق اللابتوب. هذه الحاسبة تضيف هوامش الأمان الذكية لمنع التأخير.
         </p>
       </div>
 
       {/* Form Input */}
-      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-[#121212] border border-stone-200 dark:border-[#262626] rounded-2xl p-5 shadow-xs space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-2 space-y-1">
             <label className="text-xs font-bold text-stone-700 dark:text-stone-300">
@@ -175,8 +182,8 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
               type="text"
               value={appointmentTitle}
               onChange={(e) => setAppointmentTitle(e.target.value)}
-              placeholder="مثلاً: دكتور الأسنان / مقابلة عمل / ميعاد مع أصدقاء"
-              className="w-full text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 p-2.5 text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+              placeholder="مثلاً: دكتور الأسنان / مقابلة عمل / لقاء أصدقاء"
+              className="w-full text-xs rounded-xl border border-stone-200 dark:border-[#262626] bg-stone-50/50 dark:bg-[#0c0c0c] p-2.5 text-stone-900 dark:text-stone-100 focus:outline-hidden focus:border-stone-500"
             />
           </div>
 
@@ -188,7 +195,7 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
               type="time"
               value={appointmentTime}
               onChange={(e) => setAppointmentTime(e.target.value)}
-              className="w-full text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 p-2.5 text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+              className="w-full text-xs rounded-xl border border-stone-200 dark:border-[#262626] bg-stone-50/50 dark:bg-[#0c0c0c] p-2.5 text-stone-900 dark:text-stone-100 focus:outline-hidden focus:border-stone-500"
             />
           </div>
         </div>
@@ -196,8 +203,8 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-bold text-stone-700 dark:text-stone-300 flex justify-between">
-              <span>وقت الطريق التقريبي (بالسيارة/المواصلات)</span>
-              <span className="text-amber-600 dark:text-amber-400 font-extrabold">{estimatedTripMinutes} دقيقة</span>
+              <span>وقت الطريق التقريبي</span>
+              <span className="font-mono text-stone-900 dark:text-stone-100">{estimatedTripMinutes} دقيقة</span>
             </label>
             <input
               type="range"
@@ -206,12 +213,12 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
               step={5}
               value={estimatedTripMinutes}
               onChange={(e) => setEstimatedTripMinutes(Number(e.target.value))}
-              className="w-full accent-amber-500 cursor-pointer"
+              className="w-full accent-stone-900 dark:accent-white cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-stone-400">
-              <span>10 دقائق</span>
-              <span>60 دقيقة</span>
-              <span>ساعتان</span>
+            <div className="flex justify-between text-[10px] text-stone-400 font-mono">
+              <span>10د</span>
+              <span>60د</span>
+              <span>120د</span>
             </div>
           </div>
 
@@ -222,11 +229,11 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
             <select
               value={prepType}
               onChange={(e) => setPrepType(e.target.value)}
-              className="w-full text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 p-2.5 text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+              className="w-full text-xs rounded-xl border border-stone-200 dark:border-[#262626] bg-stone-50/50 dark:bg-[#0c0c0c] p-2.5 text-stone-900 dark:text-stone-100 focus:outline-hidden focus:border-stone-500"
             >
               <option value="عادي (لبس، تجهيز الأغراض، المفاتيح)">عادي (لبس وتجميع الأغراض والمفاتيح)</option>
               <option value="رسمي أو مقابلة (شياكة، تجميع أوراق، حلاقة/كي)">رسمي أو مقابلة (يحتاج وقت مضاعف)</option>
-              <option value="سريع جداً (كاجوال جاهز في 5 دقائق)">سريع جداً (كاجوال)</option>
+              <option value="سريع جداً (كاجوال جاهز في 5 دقائق)">سريع جداً (كاجوال في 5 دقائق)</option>
             </select>
           </div>
         </div>
@@ -236,94 +243,75 @@ export const TimeBlindnessCalc: React.FC<TimeBlindnessCalcProps> = ({
         <button
           onClick={handleCalculate}
           disabled={!appointmentTitle.trim() || isLoading}
-          className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50"
+          className="w-full py-2.5 px-4 rounded-xl bg-stone-900 hover:bg-black dark:bg-white dark:hover:bg-stone-200 text-white dark:text-black font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
         >
-          <Sparkles className="w-4 h-4" />
-          <span>{isLoading ? 'جارِ بناء خطة الأمان الزمني...' : 'احسب موعد الخروج وهامش الأمان الواقعي'}</span>
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>{isLoading ? 'جارِ الحساب...' : 'حساب موعد الخروج وهامش الأمان الواقعي'}</span>
         </button>
       </div>
 
-      {/* Saved Time Plans List */}
+      {/* Saved Time Plans */}
       <div className="space-y-4">
-        <h3 className="text-xs font-extrabold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-          مشاويرك ومواعيدك المحمية بهوامش الأمان ({timePlans.length})
+        <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider">
+          مواعيدك المحمية بهوامش الأمان ({timePlans.length})
         </h3>
 
         {timePlans.length === 0 ? (
-          <div className="bg-stone-50 dark:bg-stone-900/40 border border-dashed border-stone-300 dark:border-stone-800 rounded-xl p-8 text-center text-xs text-stone-400">
-            لا توجد مشاوير مسجلة حالياً. أضف موعدك القادم لمعرفة وقت بدء الاستعداد بالضبط وتفادي التأخير.
+          <div className="bg-stone-50 dark:bg-[#101010] border border-dashed border-stone-200 dark:border-[#262626] rounded-2xl p-8 text-center text-xs text-stone-400">
+            لا توجد مشاوير مسجلة حالياً.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {timePlans.map((plan) => (
               <div
                 key={plan.id}
-                className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-4 shadow-xs space-y-3 relative overflow-hidden"
+                className="bg-white dark:bg-[#121212] border border-stone-200 dark:border-[#262626] rounded-2xl p-4 shadow-xs space-y-3"
               >
-                {/* Header & Delete */}
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100">
                       {plan.appointmentTitle}
                     </h4>
-                    <p className="text-xs text-stone-500">
-                      موعد الوصول: <span className="font-bold text-stone-700 dark:text-stone-300">{plan.targetArrivalTime}</span>
+                    <p className="text-xs text-stone-500 font-mono">
+                      موعد الوصول: <span className="font-bold text-stone-800 dark:text-stone-200">{plan.targetArrivalTime}</span>
                     </p>
                   </div>
                   <button
                     onClick={() => onDeleteTimePlan(plan.id)}
                     className="p-1 text-stone-400 hover:text-red-500 transition-colors"
-                    title="حذف"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* Countdown banner */}
                 <div>{renderPlanCountdown(plan)}</div>
 
-                {/* The Timeline Breakdown */}
-                <div className="grid grid-cols-2 gap-2 text-xs bg-stone-50 dark:bg-stone-950 p-3 rounded-xl border border-stone-200/60 dark:border-stone-800">
+                <div className="grid grid-cols-2 gap-2 text-xs bg-stone-50/60 dark:bg-[#0c0c0c] p-3 rounded-xl border border-stone-200/60 dark:border-[#222222]">
                   <div className="space-y-0.5">
-                    <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold block">
+                    <span className="text-[10px] text-stone-500 font-bold block">
                       ⏰ ابدأ التجهيز واللبس:
                     </span>
-                    <span className="font-mono font-bold text-stone-800 dark:text-stone-100 text-sm">
+                    <span className="font-mono font-bold text-stone-900 dark:text-stone-100 text-sm">
                       {plan.startPrepTime}
                     </span>
-                    <span className="text-[10px] text-stone-400 block">({plan.prepMinutes} دقيقة للتجهيز)</span>
+                    <span className="text-[10px] text-stone-400 block font-mono">({plan.prepMinutes} د لبس)</span>
                   </div>
 
                   <div className="space-y-0.5">
-                    <span className="text-[10px] text-red-600 dark:text-red-400 font-bold block">
+                    <span className="text-[10px] text-stone-500 font-bold block">
                       🚪 افتح الباب واخرج:
                     </span>
-                    <span className="font-mono font-bold text-stone-800 dark:text-stone-100 text-sm">
+                    <span className="font-mono font-bold text-stone-900 dark:text-stone-100 text-sm">
                       {plan.leaveHomeTime}
                     </span>
-                    <span className="text-[10px] text-stone-400 block">
-                      ({plan.transitMinutes} د طريق + {plan.unexpectedDelayBufferMinutes} د أمان)
+                    <span className="text-[10px] text-stone-400 block font-mono">
+                      ({plan.transitMinutes} د + {plan.unexpectedDelayBufferMinutes} د أمان)
                     </span>
                   </div>
                 </div>
 
-                {/* Anti-delay tips */}
-                {plan.antiDelayTips && plan.antiDelayTips.length > 0 && (
-                  <div className="text-[11px] space-y-1 text-stone-600 dark:text-stone-400">
-                    <span className="font-bold text-stone-700 dark:text-stone-300 block">
-                      نصائح قبل الخروج لمنع التأخير:
-                    </span>
-                    <ul className="list-disc list-inside space-y-0.5 pr-1">
-                      {plan.antiDelayTips.slice(0, 2).map((tip, idx) => (
-                        <li key={idx}>{tip}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Golden Rule for Programmers */}
                 {plan.closingLaptopRule && (
-                  <div className="bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 border border-amber-200/50 dark:border-amber-900">
+                  <div className="p-2.5 rounded-lg bg-stone-50 dark:bg-[#181818] text-[11px] text-stone-700 dark:text-stone-300 border border-stone-200/60 dark:border-[#262626]">
                     <strong>💻 قاعدة المبرمج:</strong> {plan.closingLaptopRule}
                   </div>
                 )}

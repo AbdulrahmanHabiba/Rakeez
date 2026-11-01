@@ -58,6 +58,17 @@ export interface TimePlan {
   createdAt: number;
 }
 
+export interface JournalEntry {
+  id: string;
+  date: string; // "YYYY-MM-DD"
+  question: string;
+  answer: string;
+  tag?: string;
+  timestamp: number;
+}
+
+export type AppTheme = 'amoled' | 'neon' | 'synth' | 'forest' | 'solar' | 'nordic';
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';

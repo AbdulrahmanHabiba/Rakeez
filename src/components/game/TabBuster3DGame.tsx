@@ -404,13 +404,58 @@ export const TabBuster3DGame: React.FC<TabBuster3DGameProps> = ({ onExitGame, on
       }
     };
 
-    // 7. Keyboard Input Listeners (WASD + Arrows + Space + Escape)
+    // 7. Multi-input listeners (Keyboard + Touch/Mouse Drag)
+    let isPointerDown = false;
+    let pointerTargetX: number | null = null;
+    let pointerTargetZ: number | null = null;
+
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('.hud-control')) return;
+
+      isPointerDown = true;
+      const rect = container.getBoundingClientRect();
+      const normX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const normY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+      pointerTargetX = THREE.MathUtils.clamp(normX * 10, -11, 11);
+      pointerTargetZ = THREE.MathUtils.clamp(2 + normY * 7, -8, 11);
+
+      if (stateRef.current.gameState === 'title') {
+        stateRef.current.gameState = 'playing';
+        setGameState('playing');
+        playChime('success');
+      } else if (stateRef.current.gameState === 'playing') {
+        stateRef.current.keys.fire = true;
+      }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isPointerDown) return;
+      const rect = container.getBoundingClientRect();
+      const normX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const normY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+      pointerTargetX = THREE.MathUtils.clamp(normX * 10, -11, 11);
+      pointerTargetZ = THREE.MathUtils.clamp(2 + normY * 7, -8, 11);
+    };
+
+    const onPointerUp = () => {
+      isPointerDown = false;
+      pointerTargetX = null;
+      pointerTargetZ = null;
+      stateRef.current.keys.fire = false;
+    };
+
+    container.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+
     const onKeyDown = (e: KeyboardEvent) => {
-      if (['ArrowUp', 'KeyW'].includes(e.code)) stateRef.current.keys.up = true;
-      if (['ArrowDown', 'KeyS'].includes(e.code)) stateRef.current.keys.down = true;
-      if (['ArrowLeft', 'KeyA'].includes(e.code)) stateRef.current.keys.left = true;
-      if (['ArrowRight', 'KeyD'].includes(e.code)) stateRef.current.keys.right = true;
-      if (['Space', 'Enter'].includes(e.code)) {
+      const k = e.key.toLowerCase();
+      if (['arrowup', 'w', 'ص'].includes(k) || ['ArrowUp', 'KeyW'].includes(e.code)) stateRef.current.keys.up = true;
+      if (['arrowdown', 's', 'س'].includes(k) || ['ArrowDown', 'KeyS'].includes(e.code)) stateRef.current.keys.down = true;
+      if (['arrowleft', 'a', 'ش'].includes(k) || ['ArrowLeft', 'KeyA'].includes(e.code)) stateRef.current.keys.left = true;
+      if (['arrowright', 'd', 'ي'].includes(k) || ['ArrowRight', 'KeyD'].includes(e.code)) stateRef.current.keys.right = true;
+      if ([' ', 'enter', 'f', 'ب'].includes(k) || ['Space', 'Enter'].includes(e.code)) {
         if (stateRef.current.gameState === 'title') {
           stateRef.current.gameState = 'playing';
           setGameState('playing');
@@ -419,7 +464,7 @@ export const TabBuster3DGame: React.FC<TabBuster3DGameProps> = ({ onExitGame, on
           stateRef.current.keys.fire = true;
         }
       }
-      if (e.code === 'Escape') {
+      if (e.key === 'Escape' || e.code === 'Escape') {
         if (stateRef.current.gameState === 'playing') {
           stateRef.current.gameState = 'paused';
           setGameState('paused');
@@ -431,11 +476,12 @@ export const TabBuster3DGame: React.FC<TabBuster3DGameProps> = ({ onExitGame, on
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
-      if (['ArrowUp', 'KeyW'].includes(e.code)) stateRef.current.keys.up = false;
-      if (['ArrowDown', 'KeyS'].includes(e.code)) stateRef.current.keys.down = false;
-      if (['ArrowLeft', 'KeyA'].includes(e.code)) stateRef.current.keys.left = false;
-      if (['ArrowRight', 'KeyD'].includes(e.code)) stateRef.current.keys.right = false;
-      if (['Space', 'Enter'].includes(e.code)) stateRef.current.keys.fire = false;
+      const k = e.key.toLowerCase();
+      if (['arrowup', 'w', 'ص'].includes(k) || ['ArrowUp', 'KeyW'].includes(e.code)) stateRef.current.keys.up = false;
+      if (['arrowdown', 's', 'س'].includes(k) || ['ArrowDown', 'KeyS'].includes(e.code)) stateRef.current.keys.down = false;
+      if (['arrowleft', 'a', 'ش'].includes(k) || ['ArrowLeft', 'KeyA'].includes(e.code)) stateRef.current.keys.left = false;
+      if (['arrowright', 'd', 'ي'].includes(k) || ['ArrowRight', 'KeyD'].includes(e.code)) stateRef.current.keys.right = false;
+      if ([' ', 'enter', 'f', 'ب'].includes(k) || ['Space', 'Enter'].includes(e.code)) stateRef.current.keys.fire = false;
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -460,12 +506,17 @@ export const TabBuster3DGame: React.FC<TabBuster3DGameProps> = ({ onExitGame, on
         camera.lookAt(0, 0, 0);
         playerGroup.rotation.y = Math.sin(now * 0.001) * 0.2;
       } else if (currentState === 'playing') {
-        // Player Movement
-        const speed = 12;
-        if (stateRef.current.keys.left) playerGroup.position.x -= speed * dt;
-        if (stateRef.current.keys.right) playerGroup.position.x += speed * dt;
-        if (stateRef.current.keys.up) playerGroup.position.z -= speed * dt;
-        if (stateRef.current.keys.down) playerGroup.position.z += speed * dt;
+        // Player Movement (Drag Target or Keyboard)
+        if (pointerTargetX !== null && pointerTargetZ !== null) {
+          playerGroup.position.x = THREE.MathUtils.damp(playerGroup.position.x, pointerTargetX, 14, dt);
+          playerGroup.position.z = THREE.MathUtils.damp(playerGroup.position.z, pointerTargetZ, 14, dt);
+        } else {
+          const speed = 15;
+          if (stateRef.current.keys.left) playerGroup.position.x -= speed * dt;
+          if (stateRef.current.keys.right) playerGroup.position.x += speed * dt;
+          if (stateRef.current.keys.up) playerGroup.position.z -= speed * dt;
+          if (stateRef.current.keys.down) playerGroup.position.z += speed * dt;
+        }
 
         // Clamp arena boundaries
         playerGroup.position.x = THREE.MathUtils.clamp(playerGroup.position.x, -11, 11);
@@ -657,6 +708,9 @@ export const TabBuster3DGame: React.FC<TabBuster3DGameProps> = ({ onExitGame, on
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      container.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
       renderer.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
@@ -684,8 +738,11 @@ export const TabBuster3DGame: React.FC<TabBuster3DGameProps> = ({ onExitGame, on
       {/* 3D WebGL Canvas Container */}
       <div ref={mountRef} className="absolute inset-0 w-full h-full cursor-crosshair" />
 
-      {/* World-Matched, Low-Occlusion UI Overlays (Pointer-events: none on wrapper) */}
-      <div className="absolute inset-0 pointer-events-none p-4 sm:p-6 flex flex-col justify-between z-10">
+      {/* World-Matched, Low-Occlusion UI Overlays (Pointer-events: none on wrapper, explicit high z-index to stay above modals) */}
+      <div
+        style={{ zIndex: 50 }}
+        className="absolute inset-0 pointer-events-none p-4 sm:p-6 flex flex-col justify-between"
+      >
         {/* Perimeter Status Clusters */}
         <div className="flex items-start justify-between gap-4">
           {/* Top Left: Score & Dopamine Shield */}
@@ -782,17 +839,25 @@ export const TabBuster3DGame: React.FC<TabBuster3DGameProps> = ({ onExitGame, on
               </p>
             </div>
 
-            <button
-              onClick={() => {
-                stateRef.current.gameState = 'playing';
-                setGameState('playing');
-                playChime('success');
-              }}
-              className="w-full py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all hover:scale-[1.02] cursor-pointer"
-            >
-              <Play className="w-5 h-5 fill-current" />
-              <span>ابدأ التحدي (Space / Enter)</span>
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  stateRef.current.gameState = 'playing';
+                  setGameState('playing');
+                  playChime('success');
+                }}
+                className="w-full py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all hover:scale-[1.02] cursor-pointer"
+              >
+                <Play className="w-5 h-5 fill-current" />
+                <span>ابدأ التحدي (Space / Enter)</span>
+              </button>
+              <button
+                onClick={onExitGame}
+                className="w-full py-2.5 px-4 rounded-xl bg-transparent hover:bg-stone-800 text-stone-400 hover:text-stone-200 text-xs font-bold transition-colors cursor-pointer"
+              >
+                العودة للتركيز (خروج)
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -874,6 +939,57 @@ export const TabBuster3DGame: React.FC<TabBuster3DGameProps> = ({ onExitGame, on
             >
               <RotateCcw className="w-4 h-4" />
               <span>إعادة المحاولة فوراً</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ON-SCREEN TOUCH CONTROLS (Floating on bottom left and right for mobile and touch) */}
+      {gameState === 'playing' && (
+        <div className="absolute bottom-4 inset-x-4 z-20 flex items-end justify-between pointer-events-none select-none">
+          {/* Virtual D-pad (Steering) */}
+          <div className="hud-control pointer-events-auto flex flex-col items-center gap-1 bg-black/60 backdrop-blur-md p-2 rounded-2xl border border-stone-800 shadow-xl">
+            <button
+              onPointerDown={() => { stateRef.current.keys.up = true; }}
+              onPointerUp={() => { stateRef.current.keys.up = false; }}
+              className="w-11 h-9 rounded-xl bg-stone-800/80 active:bg-amber-500 text-stone-200 flex items-center justify-center cursor-pointer shadow-xs"
+            >
+              ▲
+            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onPointerDown={() => { stateRef.current.keys.left = true; }}
+                onPointerUp={() => { stateRef.current.keys.left = false; }}
+                className="w-11 h-9 rounded-xl bg-stone-800/80 active:bg-amber-500 text-stone-200 flex items-center justify-center cursor-pointer shadow-xs"
+              >
+                ◀
+              </button>
+              <button
+                onPointerDown={() => { stateRef.current.keys.down = true; }}
+                onPointerUp={() => { stateRef.current.keys.down = false; }}
+                className="w-11 h-9 rounded-xl bg-stone-800/80 active:bg-amber-500 text-stone-200 flex items-center justify-center cursor-pointer shadow-xs"
+              >
+                ▼
+              </button>
+              <button
+                onPointerDown={() => { stateRef.current.keys.right = true; }}
+                onPointerUp={() => { stateRef.current.keys.right = false; }}
+                className="w-11 h-9 rounded-xl bg-stone-800/80 active:bg-amber-500 text-stone-200 flex items-center justify-center cursor-pointer shadow-xs"
+              >
+                ▶
+              </button>
+            </div>
+          </div>
+
+          {/* Virtual Fire Laser Button */}
+          <div className="hud-control pointer-events-auto flex flex-col items-center gap-1.5">
+            <button
+              onPointerDown={() => { stateRef.current.keys.fire = true; }}
+              onPointerUp={() => { stateRef.current.keys.fire = false; }}
+              className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 active:scale-95 text-black font-black text-xs flex flex-col items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.6)] cursor-pointer"
+            >
+              <Zap className="w-6 h-6 fill-black" />
+              <span className="text-[9px] font-mono font-black">FIRE</span>
             </button>
           </div>
         </div>

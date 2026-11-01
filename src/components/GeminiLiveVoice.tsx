@@ -177,30 +177,30 @@ export const GeminiLiveVoice: React.FC<GeminiLiveVoiceProps> = ({ onClose, activ
   }, []);
 
   return (
-    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm space-y-6 max-w-2xl mx-auto relative overflow-hidden">
+    <div className="bg-white dark:bg-[#121212] border border-stone-200 dark:border-[#262626] rounded-2xl p-6 shadow-sm space-y-6 max-w-2xl mx-auto relative overflow-hidden animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-4">
+      <div className="flex items-center justify-between border-b border-stone-100 dark:border-[#222222] pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
-            <Radio className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-xl bg-stone-100 dark:bg-[#202020] text-stone-700 dark:text-stone-300 flex items-center justify-center font-bold">
+            <Radio className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-extrabold text-stone-900 dark:text-stone-100">
+              <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
                 محادثة صوتية مباشرة في الوقت الفعلي
               </h3>
-              <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
-                gemini-3.8-live (Live API)
+              <span className="text-[10px] font-mono text-stone-400 border border-stone-200 dark:border-[#2a2a2a] px-2 py-0.5 rounded-full">
+                gemini-3.8-live
               </span>
             </div>
-            <p className="text-xs text-stone-500">
-              جلسة صوتية حية لمضاعفة الحضور (Live Body Doubling) بدون الحاجة للكتابة باليد!
+            <p className="text-xs text-stone-400">
+              جلسة صوتية لمضاعفة الحضور والتركيز بدون كتابة
             </p>
           </div>
         </div>
 
         {onClose && (
-          <button onClick={onClose} className="p-1 rounded-lg text-stone-400 hover:text-stone-700">
+          <button onClick={onClose} className="p-1 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200">
             <X className="w-5 h-5" />
           </button>
         )}

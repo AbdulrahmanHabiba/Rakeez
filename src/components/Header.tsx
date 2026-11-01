@@ -1,158 +1,164 @@
 import React, { useState } from 'react';
 import {
+  Brain,
   Volume2,
   VolumeX,
+  Settings,
+  Flame,
+  Home,
+  Target,
   Sparkles,
-  Brain,
-  Code2,
-  Moon,
-  Sun,
-  ShieldCheck,
-  Gamepad2,
-  Radio,
+  Palette,
 } from 'lucide-react';
-import { playAmbientSound, stopAmbientSound } from '../utils/sound';
+import { playAmbientSound, stopAmbientSound, playChime } from '../utils/sound';
+import { Language, translations } from '../utils/i18n';
+import { AppTheme } from '../types';
 
 interface HeaderProps {
-  completedMicroStepsCount: number;
-  onOpenDevGuide: () => void;
-  onLaunchGame: () => void;
-  onLaunchLiveVoice: () => void;
-  darkMode: boolean;
-  onToggleDarkMode: () => void;
+  activeSection: 'home' | 'braindump' | 'focus' | 'tools' | 'history';
+  onSelectSection: (section: 'home' | 'braindump' | 'focus' | 'tools' | 'history') => void;
+  onOpenSettings: () => void;
+  completedStepsCount: number;
+  hasActiveTask: boolean;
+  lang: Language;
+  appTheme?: AppTheme;
+  onCycleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  completedMicroStepsCount,
-  onOpenDevGuide,
-  onLaunchGame,
-  onLaunchLiveVoice,
-  darkMode,
-  onToggleDarkMode,
+  activeSection,
+  onSelectSection,
+  onOpenSettings,
+  completedStepsCount,
+  hasActiveTask,
+  lang,
+  appTheme,
+  onCycleTheme,
 }) => {
-  const [ambientType, setAmbientType] = useState<'off' | 'brown' | 'binaural40' | 'rain'>('off');
+  const t = translations[lang];
+  const [ambientActive, setAmbientActive] = useState(false);
 
-  const handleSoundChange = (type: 'brown' | 'binaural40' | 'rain') => {
-    if (ambientType === type) {
+  const toggleAmbientSound = () => {
+    if (ambientActive) {
       stopAmbientSound();
-      setAmbientType('off');
+      setAmbientActive(false);
     } else {
-      playAmbientSound(type);
-      setAmbientType(type);
+      playAmbientSound('brown');
+      setAmbientActive(true);
     }
   };
 
   return (
-    <header className="border-b border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3 transition-colors">
-      <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-        {/* Logo & App title */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white shadow-sm shadow-amber-500/20">
-            <Brain className="w-5 h-5" />
+    <header className="border-b border-stone-200 dark:border-[#262626] bg-white/90 dark:bg-black/90 backdrop-blur-md sticky top-0 z-30 transition-colors">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+        {/* Brand / Logo */}
+        <div
+          onClick={() => onSelectSection('home')}
+          className="flex items-center gap-2.5 cursor-pointer shrink-0"
+        >
+          <div className="w-8 h-8 rounded-lg bg-stone-900 dark:bg-white text-white dark:text-black flex items-center justify-center font-bold">
+            <Brain className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-extrabold text-lg text-stone-900 dark:text-stone-100 tracking-tight">
-                ركّز <span className="text-amber-600 dark:text-amber-400 font-medium text-sm">| Rakeez</span>
-              </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/60">
-                <ShieldCheck className="w-3 h-3" />
-                رفيق الـ ADHD
-              </span>
-            </div>
-            <p className="text-xs text-stone-500 dark:text-stone-400 hidden sm:block">
-              تصفية التشتت • مهمة واحدة في كل مرة • حاسبة عمى الوقت
-            </p>
+            <span className="font-extrabold text-sm sm:text-base text-stone-900 dark:text-stone-100 tracking-tight">
+              {t.appName}
+            </span>
           </div>
         </div>
 
-        {/* Ambient Noise + Dopamine Counter + Live Audio + 3D Game + Dev Guide + Theme Toggle */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Dopamine micro-reward counter */}
-          <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-stone-800/80 border border-amber-200/70 dark:border-stone-700 text-stone-700 dark:text-stone-300 px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-xs">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span className="hidden lg:inline">إنجازات اليوم:</span>
-            <span className="text-amber-600 dark:text-amber-400 font-bold px-1">{completedMicroStepsCount}</span>
-          </div>
-
-          {/* Live Voice Button (gemini-3.8-live) */}
+        {/* Primary Desktop Navigation Links */}
+        <nav className="hidden md:flex items-center gap-1">
           <button
-            onClick={onLaunchLiveVoice}
-            className="flex items-center gap-1.5 text-xs bg-amber-100/70 dark:bg-amber-950/70 hover:bg-amber-200 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-200 px-2.5 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 font-bold transition-all shadow-xs"
-            title="محادثة صوتية حية في الوقت الفعلي بنموذج gemini-3.8-live"
+            onClick={() => onSelectSection('home')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+              activeSection === 'home'
+                ? 'bg-stone-100 dark:bg-[#1c1c1c] text-stone-900 dark:text-white'
+                : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'
+            }`}
           >
-            <Radio className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span className="hidden md:inline">صوت حي</span>
+            {t.navHome}
+          </button>
+          <button
+            onClick={() => onSelectSection('braindump')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+              activeSection === 'braindump'
+                ? 'bg-stone-100 dark:bg-[#1c1c1c] text-stone-900 dark:text-white'
+                : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'
+            }`}
+          >
+            {t.navBrainDump}
+          </button>
+          <button
+            onClick={() => onSelectSection('focus')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+              activeSection === 'focus'
+                ? 'bg-stone-100 dark:bg-[#1c1c1c] text-stone-900 dark:text-white'
+                : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'
+            }`}
+          >
+            <span>{t.navFocus}</span>
+            {hasActiveTask && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+          </button>
+          <button
+            onClick={() => onSelectSection('tools')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+              activeSection === 'tools'
+                ? 'bg-stone-100 dark:bg-[#1c1c1c] text-stone-900 dark:text-white'
+                : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'
+            }`}
+          >
+            {t.navTools}
+          </button>
+          <button
+            onClick={() => onSelectSection('history')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+              activeSection === 'history'
+                ? 'bg-stone-100 dark:bg-[#1c1c1c] text-stone-900 dark:text-white'
+                : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'
+            }`}
+          >
+            {t.navHistory}
+          </button>
+        </nav>
+
+        {/* Right Action Cluster (Zero clipping, compact) */}
+        <div className="flex items-center gap-2">
+          {/* Ambient Brown Noise Toggle (Focus sound) */}
+          <button
+            onClick={toggleAmbientSound}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+              ambientActive
+                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300'
+                : 'border-stone-200 dark:border-[#262626] text-stone-500 hover:bg-stone-100 dark:hover:bg-[#1c1c1c]'
+            }`}
+            title="عزل الضوضاء الذهني (Brown Noise)"
+          >
+            {ambientActive ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">عزل ذهني</span>
           </button>
 
-          {/* 3D Tab Buster Game Launcher */}
-          <button
-            onClick={onLaunchGame}
-            className="flex items-center gap-1.5 text-xs bg-purple-100/70 dark:bg-purple-950/70 hover:bg-purple-200 dark:hover:bg-purple-900 text-purple-900 dark:text-purple-200 px-2.5 py-1.5 rounded-lg border border-purple-300 dark:border-purple-700 font-bold transition-all shadow-xs"
-            title="لعبة كاسر التشتت ثلاثية الأبعاد (Three.js)"
-          >
-            <Gamepad2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-            <span className="hidden md:inline">لعبة 3D</span>
-          </button>
-
-          {/* ADHD Ambient sound generator (Brown noise / Binaural 40Hz / Rain) */}
-          <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-200 dark:border-stone-700 text-xs">
+          {/* Quick Theme Switcher */}
+          {onCycleTheme && (
             <button
-              onClick={() => handleSoundChange('brown')}
-              title="Brown Noise: عزل الأصوات المشتتة"
-              className={`px-2 py-1 rounded-md transition-all font-medium flex items-center gap-1 ${
-                ambientType === 'brown'
-                  ? 'bg-amber-500 text-white shadow-xs'
-                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
-              }`}
+              onClick={() => {
+                onCycleTheme();
+                playChime('pop');
+              }}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-stone-200 dark:border-[#262626] text-stone-500 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#1c1c1c] transition-colors cursor-pointer text-xs font-mono"
+              title={`الثيم الحالي: ${appTheme || 'amoled'} (اضغط للتبديل السريع)`}
             >
-              <Volume2 className="w-3 h-3" />
-              <span className="hidden xl:inline">عزل ذهني</span>
+              <Palette className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[11px] hidden md:inline font-bold uppercase">{appTheme || 'AMOLED'}</span>
             </button>
-            <button
-              onClick={() => handleSoundChange('binaural40')}
-              title="40Hz Gamma Focus Tone: موجات التركيز الدماغي"
-              className={`px-2 py-1 rounded-md transition-all font-medium ${
-                ambientType === 'binaural40'
-                  ? 'bg-amber-500 text-white shadow-xs'
-                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
-              }`}
-            >
-              <span className="hidden xl:inline">40Hz</span>
-              <span className="xl:hidden">40Hz</span>
-            </button>
-            {ambientType !== 'off' && (
-              <button
-                onClick={() => {
-                  stopAmbientSound();
-                  setAmbientType('off');
-                }}
-                className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-md"
-                title="إيقاف الصوت"
-              >
-                <VolumeX className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          )}
 
-          {/* Dev advice modal button */}
+          {/* Settings Button */}
           <button
-            onClick={onOpenDevGuide}
-            className="flex items-center gap-1.5 text-xs bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 px-2 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 font-medium transition-colors"
-            title="نصيحة المطور: تحويل هذا التطبيق إلى React Native"
+            onClick={onOpenSettings}
+            className="p-2 rounded-lg border border-stone-200 dark:border-[#262626] text-stone-500 hover:text-stone-900 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#1c1c1c] transition-colors cursor-pointer"
+            title={t.navSettings}
           >
-            <Code2 className="w-3.5 h-3.5 text-blue-500" />
-            <span className="hidden xl:inline">React Native</span>
-          </button>
-
-          {/* Dark mode toggle */}
-          <button
-            onClick={onToggleDarkMode}
-            className="p-2 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
-            title={darkMode ? 'الوضع الفاتح' : 'الوضع الليلي'}
-            aria-label="Toggle theme"
-          >
-            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-stone-600" />}
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>
